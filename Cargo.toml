@@ -5,3 +5,4 @@ authors = ["bidhan-a <bidhan619@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+daggy = "0.6.0"
