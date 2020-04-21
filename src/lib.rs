@@ -7,8 +7,8 @@ pub trait Step {
 }
 
 pub trait Source<T> {
-    fn name() -> String;
-    fn start(tx: Sender<T>) -> Result<(), String>;
+    fn name(self) -> String;
+    fn start(self, tx: Sender<T>) -> Result<(), String>;
 }
 
 pub trait Sink<T> {
@@ -19,11 +19,11 @@ pub trait Sink<T> {
 pub struct ConsoleSource {}
 
 impl<T> Source<T> for ConsoleSource {
-    fn name() -> String {
+    fn name(self) -> String {
         "Console Source".to_owned()
     }
 
-    fn start(rx: Receiver<T>) -> Result<(), String> {
+    fn start(self, tx: Sender<T>) -> Result<(), String> {
         Ok(())
     }
 }
@@ -51,7 +51,7 @@ mod test {
 
     #[test]
     fn basic_executor_is_created() {
-        let executor = Executor::new("Basic Executor");
+        let executor: Executor<u32> = Executor::new("Basic Executor");
         assert_eq!(executor.name, "Basic Executor");
     }
 }
