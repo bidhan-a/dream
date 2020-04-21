@@ -6,9 +6,10 @@ pub trait Step {
     fn name() -> String;
 }
 
-pub trait Source<T> {
+pub trait Source {
+    type T;
     fn name(self) -> String;
-    fn start(self, tx: Sender<T>) -> Result<(), String>;
+    fn start(self, tx: Sender<Self::T>) -> Result<(), String>;
 }
 
 pub trait Sink<T> {
@@ -18,24 +19,25 @@ pub trait Sink<T> {
 
 pub struct ConsoleSource {}
 
-impl<T> Source<T> for ConsoleSource {
+impl Source for ConsoleSource {
+    type T = Vec<u8>;
     fn name(self) -> String {
         "Console Source".to_owned()
     }
 
-    fn start(self, tx: Sender<T>) -> Result<(), String> {
+    fn start(self, tx: Sender<Self::T>) -> Result<(), String> {
         Ok(())
     }
 }
 
 pub struct Processor {}
 
-pub struct Executor<T> {
+pub struct Executor<U> {
     name: String,
-    source: Box<dyn Source<T>>,
+    source: Box<dyn Source<T = U>>,
 }
 
-impl<T> Executor<T> {
+impl<U> Executor<U> {
     fn new(name: &str) -> Self {
         let console_source = ConsoleSource {};
         Self {
