@@ -32,28 +32,29 @@ impl Source for ConsoleSource {
 
 pub struct Processor {}
 
-pub struct Executor<U> {
+pub struct Executor<U: Source> {
     name: String,
-    source: Box<dyn Source<T = U>>,
+    source: U,
 }
 
-impl<U> Executor<U> {
-    fn new(name: &str) -> Self {
-        let console_source = ConsoleSource {};
+impl<U: Source> Executor<U> {
+    fn new(name: &str, source: U) -> Self {
         Self {
             name: name.to_string(),
-            source: Box::new(console_source),
+            source: source,
         }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use super::ConsoleSource;
     use super::Executor;
 
     #[test]
     fn basic_executor_is_created() {
-        let executor: Executor<u32> = Executor::new("Basic Executor");
+        let console_source = ConsoleSource {};
+        let executor: Executor<ConsoleSource> = Executor::new("Basic Executor", console_source);
         assert_eq!(executor.name, "Basic Executor");
     }
 }
