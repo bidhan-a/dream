@@ -1,4 +1,4 @@
-use crate::sources::{Sender, Source};
+use crate::sources::{Result, Sender, Source};
 use std::io::{self, BufReader, Read};
 
 const CHUNK_SIZE: usize = 16 * 1024; // 16 kb.
@@ -11,7 +11,7 @@ impl Source for StdinSource {
         "Stdin Source".to_owned()
     }
 
-    fn start(self, tx: Sender<Self::T>) -> Result<(), String> {
+    fn start(self, tx: Sender<Self::T>) -> Result<()> {
         let mut reader: Box<dyn Read> = Box::new(BufReader::new(io::stdin()));
         let mut buffer = [0; CHUNK_SIZE];
         loop {

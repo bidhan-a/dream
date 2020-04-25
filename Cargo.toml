@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 daggy = "0.6.0"
+csv = "1.1.3"
