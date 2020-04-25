@@ -7,7 +7,7 @@ use executor::Executor;
 use sources::{stdin::StdinSource, Source};
 use std::iter::once;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[cfg(test)]
 mod test {

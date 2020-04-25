@@ -3,6 +3,7 @@ use std::io::{self, BufReader, Read};
 
 const CHUNK_SIZE: usize = 16 * 1024; // 16 kb.
 
+#[derive(Clone)]
 pub struct StdinSource {}
 
 impl Source for StdinSource {

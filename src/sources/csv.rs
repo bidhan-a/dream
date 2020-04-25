@@ -3,6 +3,7 @@ use csv::{Reader, StringRecord};
 use std::fs::File;
 use std::io::{self, BufReader, Read};
 
+#[derive(Clone)]
 pub struct CSVSource {
     filename: String,
 }
