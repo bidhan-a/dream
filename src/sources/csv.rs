@@ -5,7 +5,7 @@ use std::io::{self, BufReader, Read};
 
 #[derive(Clone)]
 pub struct CSVSource {
-    filename: String,
+    pub filename: String,
 }
 
 impl Source for CSVSource {

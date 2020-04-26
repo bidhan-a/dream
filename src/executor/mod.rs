@@ -1,19 +1,30 @@
+use crate::sinks::Sink;
 use crate::sources::Source;
 use crate::Result;
 use std::sync::mpsc;
 use std::thread;
 
 #[derive(Debug, Default)]
-pub struct Executor<U: Source> {
+pub struct Executor<U, V>
+where
+    U: Source,
+    V: Sink<T = U::T>,
+{
     pub name: String,
     pub source: U,
+    pub sink: V,
 }
 
-impl<U: 'static + std::marker::Send + std::marker::Sync + Source> Executor<U> {
-    pub fn new(name: &str, source: U) -> Self {
+impl<U: 'static, V: 'static> Executor<U, V>
+where
+    U: std::marker::Send + Source,
+    V: std::marker::Send + Sink<T = U::T>,
+{
+    pub fn new(name: &str, source: U, sink: V) -> Self {
         Self {
             name: name.to_string(),
-            source: source,
+            source,
+            sink,
         }
     }
 
@@ -24,25 +35,14 @@ impl<U: 'static + std::marker::Send + std::marker::Sync + Source> Executor<U> {
         let (source_tx, source_rx) = mpsc::channel();
         // let (sink_tx, sink_rx) = mpsc::channel();
 
-        // Hard-coded CSV source (for now)
-        // let csv_source = CSVSource {
-        //     filename: "".to_owned(),
-        // };
-
-        // thread::scope(|s| {
-        //     s.spawn(|_| {
-        //         let _ = self.source.start(source_tx).unwrap();
-        //     })
-        // })
-        // .unwrap();
-
         let cloned_source = self.source.clone();
+        let cloned_sink = self.sink.clone();
         let source_handle = thread::spawn(move || cloned_source.start(source_tx));
-        //
+        let sink_handle = thread::spawn(move || cloned_sink.start(source_rx));
         let source_result = source_handle.join().unwrap();
-        //
+        let sink_result = sink_handle.join().unwrap();
         source_result?;
-        // process(self.source);
+        sink_result?;
         Ok(())
     }
 }

@@ -5,7 +5,7 @@ use std::io::{self, Write};
 
 #[derive(Clone)]
 pub struct CSVSink {
-    filename: String,
+    pub filename: String,
 }
 
 impl Sink for CSVSink {
@@ -29,6 +29,8 @@ impl Sink for CSVSink {
             }
             wtr.write_record(record.iter())?;
         }
+
+        wtr.flush()?;
 
         Ok(())
     }
