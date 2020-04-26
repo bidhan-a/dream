@@ -19,9 +19,7 @@ mod test {
     #[test]
     fn basic_executor_is_created() {
         let csv_source = CSVSource::new().with_filename("data/in.csv");
-        let csv_sink = CSVSink {
-            filename: "data/out.csv".to_owned(),
-        };
+        let csv_sink = CSVSink::new().with_filename("data/out.csv");
         let executor: Executor<CSVSource, CSVSink> =
             Executor::new("Basic Executor", csv_source, csv_sink);
         executor.execute().unwrap();

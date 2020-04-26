@@ -3,9 +3,9 @@ use csv::{StringRecord, Writer};
 use std::fs::File;
 use std::io::{self, Write};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CSVSink {
-    pub filename: String,
+    filename: Option<String>,
 }
 
 impl Sink for CSVSink {
@@ -15,8 +15,8 @@ impl Sink for CSVSink {
     }
 
     fn start(self, rx: Receiver<Self::T>) -> Result<()> {
-        let writer: Box<dyn Write> = if !self.filename.is_empty() {
-            Box::new(File::create(self.filename)?)
+        let writer: Box<dyn Write> = if let Some(f) = self.filename {
+            Box::new(File::create(f)?)
         } else {
             Box::new(io::stdout())
         };
@@ -33,5 +33,16 @@ impl Sink for CSVSink {
         wtr.flush()?;
 
         Ok(())
+    }
+}
+
+impl CSVSink {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn with_filename(mut self, filename: &str) -> Self {
+        self.filename = Some(filename.to_owned());
+        self
     }
 }
