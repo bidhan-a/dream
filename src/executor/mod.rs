@@ -1,8 +1,6 @@
 use crate::sources::Source;
 use crate::Result;
-// use crossbeam_utils::thread;
-use crate::sources::stdin::StdinSource;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use std::thread;
 
 #[derive(Debug, Default)]
@@ -48,22 +46,3 @@ impl<U: 'static + std::marker::Send + std::marker::Sync + Source> Executor<U> {
         Ok(())
     }
 }
-
-// fn process<U: std::marker::Sync + Source>(source: U)
-// where
-//     <U as Source>::T: std::marker::Send,
-//     U: std::marker::Send,
-// {
-//     // thread::scope(|s| {
-//     //     // let stdin_source = StdinSource {};
-//     //     // let (source_tx, source_rx) = mpsc::channel::<Vec<u8>>();
-//     //     s.spawn(|_| {
-//     //         let _ = 2 + 2;
-//     //         // let _ = stdin_source.start(source_tx).unwrap();
-//     //     })
-//     // })
-//     // .unwrap();
-//     let stdin_source = StdinSource {};
-//     let (source_tx, source_rx) = mpsc::channel();
-//     let read_handle = thread::spawn(move || stdin_source.start(source_tx));
-// }

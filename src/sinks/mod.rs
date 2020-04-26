@@ -1,6 +1,10 @@
+use crate::Result;
 use std::sync::mpsc::Receiver;
 
-pub trait Sink<T> {
-    fn name() -> String;
-    fn start(rx: Receiver<T>) -> Result<(), String>;
+pub mod csv;
+
+pub trait Sink: Clone {
+    type T;
+    fn name(self) -> String;
+    fn start(self, rx: Receiver<Self::T>) -> Result<()>;
 }
