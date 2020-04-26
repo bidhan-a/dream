@@ -3,9 +3,9 @@ use csv::{Reader, StringRecord};
 use std::fs::File;
 use std::io::{self, BufReader, Read};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CSVSource {
-    pub filename: String,
+    filename: Option<String>,
 }
 
 impl Source for CSVSource {
@@ -15,8 +15,8 @@ impl Source for CSVSource {
     }
 
     fn start(self, tx: Sender<Self::T>) -> Result<()> {
-        let reader: Box<dyn Read> = if !self.filename.is_empty() {
-            Box::new(BufReader::new(File::open(self.filename)?))
+        let reader: Box<dyn Read> = if let Some(f) = self.filename {
+            Box::new(BufReader::new(File::open(f)?))
         } else {
             Box::new(BufReader::new(io::stdin()))
         };
@@ -35,5 +35,16 @@ impl Source for CSVSource {
         // no more data, send empty value to signal completion.
         let _ = tx.send(StringRecord::new());
         Ok(())
+    }
+}
+
+impl CSVSource {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn with_filename(mut self, filename: &str) -> Self {
+        self.filename = Some(filename.to_owned());
+        self
     }
 }
