@@ -8,4 +8,18 @@ pub trait Source: Clone {
     type T;
     fn name(self) -> String;
     fn start(self, tx: Sender<Self::T>) -> Result<()>;
+    fn test(self) -> Result<()> {
+        Ok(())
+    }
+}
+
+pub trait SourceWrapper {
+    fn test(&mut self);
+}
+
+impl<T: Source> SourceWrapper for Option<T> {
+    fn test(&mut self) {
+        // Option::take() gives owned from non-owned
+        self.take().unwrap().test().unwrap();
+    }
 }

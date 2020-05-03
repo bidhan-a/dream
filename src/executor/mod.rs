@@ -1,8 +1,31 @@
+use crate::dataset::DataSet;
 use crate::sinks::Sink;
-use crate::sources::Source;
+use crate::sources::{Source, SourceWrapper};
 use crate::Result;
 use std::sync::mpsc;
 use std::thread;
+
+// pub struct E2<F>
+// where
+//     F: Fn() -> Result<()>,
+// {
+//     pub f: F,
+// }
+//
+// impl E2 {
+//     pub fn add_source<T>(source: T) -> Self where T: Source {
+//         let closure = || {
+//             source.test()
+//         };
+//         Self {
+//             f: closure
+//         }
+//     }
+// }
+
+pub struct E2 {
+    pub sources: Vec<Box<dyn SourceWrapper>>,
+}
 
 #[derive(Debug, Default)]
 pub struct Executor<U, V>
@@ -46,3 +69,27 @@ where
         Ok(())
     }
 }
+
+/*
+
+Environment
+
+E {
+    Source
+}
+
+DataSet<type returned by source: A> ds = E.add_source(Source);
+DataSet<type returned by ds.map: B> ds2 = ds.map(F: A -> B);
+ds2.add_sink(Sink);
+
+
+Internally, we need to have separate threads for each function to execute.
+Each step will communicate with one another through channels.
+DAG will come later, lets just worry about single/straight flow for now.
+
+
+
+
+
+
+*/
