@@ -1,9 +1,11 @@
 pub mod dataset;
+pub mod environment;
 pub mod executor;
 pub mod sinks;
 pub mod sources;
 
 use daggy::{Dag, WouldCycle};
+use environment::Environment;
 use executor::{Executor, E2};
 use sinks::{csv::CSVSink, Sink};
 use sources::{csv::CSVSource, Source};
