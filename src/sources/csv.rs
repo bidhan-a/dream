@@ -14,6 +14,8 @@ impl Source for CSVSource {
         "Stdin Source".to_owned()
     }
 
+    // TODO: Perhaps start can accept a channel to send completion
+    // signal to instead of sending empty value to the same channel.
     fn start(self, tx: Sender<Self::T>) -> Result<()> {
         let reader: Box<dyn Read> = if let Some(f) = self.filename {
             Box::new(BufReader::new(File::open(f)?))
