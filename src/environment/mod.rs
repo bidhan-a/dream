@@ -1,4 +1,4 @@
-use crate::dataset::DS;
+use crate::dataset::DataSet;
 use crate::sinks::Sink;
 use crate::sources::Source;
 use std::sync::mpsc;
@@ -10,7 +10,7 @@ pub struct Environment {
 struct SourceRunner(Box<dyn FnOnce() -> ()>);
 
 impl Environment {
-    pub fn add_source<S: 'static>(&mut self, source: S) -> DS<S::T>
+    pub fn add_source<S: 'static>(&mut self, source: S) -> DataSet<S::T>
     where
         S: Source,
         <S as Source>::T: std::marker::Send,
@@ -23,7 +23,7 @@ impl Environment {
 
         self.source_runners.push(x);
 
-        DS::new(source_rx)
+        DataSet::new(source_rx)
     }
 }
 
