@@ -12,14 +12,3 @@ pub trait Source: Clone {
         Ok(())
     }
 }
-
-pub trait SourceWrapper {
-    fn test(&mut self);
-}
-
-impl<T: Source> SourceWrapper for Option<T> {
-    fn test(&mut self) {
-        // Option::take() gives owned from non-owned
-        self.take().unwrap().test().unwrap();
-    }
-}

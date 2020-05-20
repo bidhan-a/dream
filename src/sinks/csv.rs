@@ -1,4 +1,4 @@
-use crate::sinks::{Receiver, Result, Sink};
+use crate::sinks::{Message, Receiver, Result, Sink};
 use csv::{StringRecord, Writer};
 use std::fs::File;
 use std::io::{self, Write};
@@ -14,7 +14,7 @@ impl Sink for CSVSink {
         "Stdin Source".to_owned()
     }
 
-    fn start(self, rx: Receiver<Self::T>) -> Result<()> {
+    fn start(self, rx: Receiver<Message<Self::T>>) -> Result<()> {
         let writer: Box<dyn Write> = if let Some(f) = self.filename {
             Box::new(File::create(f)?)
         } else {
@@ -23,11 +23,15 @@ impl Sink for CSVSink {
         let mut wtr = Writer::from_writer(writer);
 
         loop {
-            let record: StringRecord = rx.recv().unwrap();
-            if record.is_empty() {
-                break;
+            let input = rx.recv().unwrap();
+            match input {
+                Message::Data(data) => {
+                    wtr.write_record(data.iter())?;
+                }
+                Message::Terminate => {
+                    break;
+                }
             }
-            wtr.write_record(record.iter())?;
         }
 
         wtr.flush()?;
