@@ -57,7 +57,7 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
                 let input = input_rx.recv().unwrap();
                 match input {
                     Message::Data(data) => {
-                        if f(&data) && output_tx.send(input).is_err() {
+                        if f(&data) && output_tx.send(Message::Data(data)).is_err() {
                             break;
                         }
                     }
