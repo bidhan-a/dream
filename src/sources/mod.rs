@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{Message, Result};
 use std::sync::mpsc::Sender;
 
 pub mod csv;
@@ -7,7 +7,7 @@ pub mod stdin;
 pub trait Source: Clone {
     type T;
     fn name(self) -> String;
-    fn start(self, tx: Sender<Self::T>) -> Result<()>;
+    fn start(self, tx: Sender<Message<Self::T>>) -> Result<()>;
     fn test(self) -> Result<()> {
         Ok(())
     }

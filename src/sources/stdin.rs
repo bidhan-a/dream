@@ -1,4 +1,4 @@
-use crate::sources::{Result, Sender, Source};
+use crate::sources::{Message, Result, Sender, Source};
 use std::io::{self, BufReader, Read};
 
 const CHUNK_SIZE: usize = 16 * 1024; // 16 kb.
@@ -12,7 +12,7 @@ impl Source for StdinSource {
         "Stdin Source".to_owned()
     }
 
-    fn start(self, tx: Sender<Self::T>) -> Result<()> {
+    fn start(self, tx: Sender<Message<Self::T>>) -> Result<()> {
         let mut reader: Box<dyn Read> = Box::new(BufReader::new(io::stdin()));
         let mut buffer = [0; CHUNK_SIZE];
         loop {
@@ -21,12 +21,15 @@ impl Source for StdinSource {
                 Ok(x) => x,
                 Err(_) => break,
             };
-            if tx.send(Vec::from(&buffer[..num_read])).is_err() {
+            if tx
+                .send(Message::Data(Vec::from(&buffer[..num_read])))
+                .is_err()
+            {
                 break;
             }
         }
-        // no more data, send empty value to signal completion.
-        let _ = tx.send(Vec::new());
+        // no more data.
+        let _ = tx.send(Message::Terminate);
         Ok(())
     }
 }

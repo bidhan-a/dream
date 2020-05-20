@@ -1,14 +1,14 @@
-use crate::Result;
-use std::sync::mpsc::{self, Receiver, Sender};
+use crate::Message;
+use std::sync::mpsc::{self, Receiver};
 use std::thread;
 
 pub struct DataSet<T> {
-    input_rx: Option<Receiver<T>>,
+    input_rx: Option<Receiver<Message<T>>>,
     thread: Option<thread::JoinHandle<()>>,
 }
 
 impl<T: std::marker::Send + 'static> DataSet<T> {
-    pub fn new(input_rx: Receiver<T>) -> DataSet<T> {
+    pub fn new(input_rx: Receiver<Message<T>>) -> DataSet<T> {
         DataSet {
             input_rx: Some(input_rx),
             thread: None,
@@ -21,15 +21,22 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         Self: std::marker::Sized,
         U: std::marker::Send,
     {
-        let (output_tx, output_rx) = mpsc::channel::<U>();
+        let (output_tx, output_rx) = mpsc::channel::<Message<U>>();
         let input_rx = self.input_rx.take().unwrap();
         let thread = thread::spawn(move || {
             loop {
                 // receive data from input channel.
                 let input = input_rx.recv().unwrap();
-                let output = f(input);
-                if output_tx.send(output).is_err() {
-                    break;
+                match input {
+                    Message::Data(data) => {
+                        let output = f(data);
+                        if output_tx.send(Message::Data(output)).is_err() {
+                            break;
+                        }
+                    }
+                    Message::Terminate => {
+                        break;
+                    }
                 }
             }
         });
@@ -42,14 +49,21 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         F: std::marker::Send + Fn(&T) -> bool,
         Self: std::marker::Sized,
     {
-        let (output_tx, output_rx) = mpsc::channel::<T>();
+        let (output_tx, output_rx) = mpsc::channel::<Message<T>>();
         let input_rx = self.input_rx.take().unwrap();
         let thread = thread::spawn(move || {
             loop {
                 // receive data from input channel.
                 let input = input_rx.recv().unwrap();
-                if f(&input) && output_tx.send(input).is_err() {
-                    break;
+                match input {
+                    Message::Data(data) => {
+                        if f(&data) && output_tx.send(input).is_err() {
+                            break;
+                        }
+                    }
+                    Message::Terminate => {
+                        break;
+                    }
                 }
             }
         });

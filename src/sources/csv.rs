@@ -1,4 +1,4 @@
-use crate::sources::{Result, Sender, Source};
+use crate::sources::{Message, Result, Sender, Source};
 use csv::{Reader, StringRecord};
 use std::fs::File;
 use std::io::{self, BufReader, Read};
@@ -14,9 +14,7 @@ impl Source for CSVSource {
         "Stdin Source".to_owned()
     }
 
-    // TODO: Perhaps start can accept a channel to send completion
-    // signal to instead of sending empty value to the same channel.
-    fn start(self, tx: Sender<Self::T>) -> Result<()> {
+    fn start(self, tx: Sender<Message<Self::T>>) -> Result<()> {
         let reader: Box<dyn Read> = if let Some(f) = self.filename {
             Box::new(BufReader::new(File::open(f)?))
         } else {
@@ -27,15 +25,15 @@ impl Source for CSVSource {
             match result {
                 Err(_) => break,
                 Ok(record) => {
-                    if tx.send(record).is_err() {
+                    if tx.send(Message::Data(record)).is_err() {
                         break;
                     }
                 }
             }
         }
 
-        // no more data, send empty value to signal completion.
-        let _ = tx.send(StringRecord::new());
+        // no more data.
+        let _ = tx.send(Message::Terminate);
         Ok(())
     }
 }

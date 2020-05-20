@@ -1,6 +1,7 @@
 use crate::dataset::DataSet;
 use crate::sinks::Sink;
 use crate::sources::Source;
+use crate::Message;
 use std::sync::mpsc;
 
 pub struct Environment {
@@ -15,7 +16,7 @@ impl Environment {
         S: Source,
         <S as Source>::T: std::marker::Send,
     {
-        let (source_tx, source_rx) = mpsc::channel::<S::T>();
+        let (source_tx, source_rx) = mpsc::channel::<Message<S::T>>();
 
         let x = SourceRunner(Box::new(move || {
             source.start(source_tx).expect("Error starting source");
