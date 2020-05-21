@@ -92,7 +92,7 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
 impl<T> Drop for DataSet<T> {
     fn drop(&mut self) {
         if self.has_sink {
-            println!("Closing sink");
+            println!("Closing sink.");
         } else {
             println!("Closing processor.");
         }

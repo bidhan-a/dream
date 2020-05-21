@@ -38,7 +38,7 @@ impl Environment {
     }
 
     pub fn run(&mut self) {
-        println!("Starting {}", self.name);
+        println!("Starting {}.", self.name);
         for source_runner in &mut self.source_runners {
             let runner = source_runner.take();
             let thread = thread::spawn(move || {
