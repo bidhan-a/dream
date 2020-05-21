@@ -2,17 +2,28 @@ use crate::dataset::DataSet;
 use crate::sources::Source;
 use crate::Message;
 use std::sync::mpsc;
+use std::thread;
 
 pub struct Environment {
-    source_runners: Vec<SourceRunner>,
+    name: String,
+    source_runners: Vec<Option<SourceRunner>>,
+    source_threads: Vec<Option<thread::JoinHandle<()>>>,
 }
 
-struct SourceRunner(Box<dyn FnOnce() -> ()>);
+struct SourceRunner(Box<dyn FnOnce() + std::marker::Send + 'static>);
 
 impl Environment {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            source_runners: Vec::new(),
+            source_threads: Vec::new(),
+        }
+    }
+
     pub fn add_source<S: 'static>(&mut self, source: S) -> DataSet<S::T>
     where
-        S: Source,
+        S: std::marker::Send + Source,
         <S as Source>::T: std::marker::Send,
     {
         let (source_tx, source_rx) = mpsc::channel::<Message<S::T>>();
@@ -21,31 +32,30 @@ impl Environment {
             source.start(source_tx).expect("Error starting source");
         }));
 
-        self.source_runners.push(x);
+        self.source_runners.push(Some(x));
 
         DataSet::new(source_rx)
     }
+
+    pub fn run(&mut self) {
+        println!("Starting {}", self.name);
+        for source_runner in &mut self.source_runners {
+            let runner = source_runner.take();
+            let thread = thread::spawn(move || {
+                runner.unwrap().0();
+            });
+            self.source_threads.push(Some(thread));
+        }
+    }
 }
 
-/*
-
-
-
-// GOAL
-
-let env = Environment::new("My pipeline");
-DataSet<String> ds = env.add_source(source);
-
-// TODO: OTHER PROCESSING STEPS (map, reduce, etc.)
-
-ds.add_sink(sink);
-env.run();
-
-
-
-Dataset
-- input channel
-- output channel
-
-
-*/
+impl Drop for Environment {
+    fn drop(&mut self) {
+        println!("Closing execution environment.");
+        for thread in &mut self.source_threads {
+            if let Some(thread) = thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
+}

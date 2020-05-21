@@ -91,8 +91,15 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
 
 impl<T> Drop for DataSet<T> {
     fn drop(&mut self) {
+        if self.has_sink {
+            println!("Closing sink");
+        } else {
+            println!("Closing processor.");
+        }
         if let Some(thread) = self.thread.take() {
             thread.join().unwrap();
         }
     }
 }
+
+// TODO: Give option to set names to DataSet. Generate one if not set.
