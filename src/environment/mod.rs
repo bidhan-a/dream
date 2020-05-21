@@ -1,5 +1,4 @@
 use crate::dataset::DataSet;
-use crate::sinks::Sink;
 use crate::sources::Source;
 use crate::Message;
 use std::sync::mpsc;

@@ -1,3 +1,4 @@
+use crate::sinks::Sink;
 use crate::Message;
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
@@ -5,6 +6,7 @@ use std::thread;
 pub struct DataSet<T> {
     input_rx: Option<Receiver<Message<T>>>,
     thread: Option<thread::JoinHandle<()>>,
+    has_sink: bool,
 }
 
 impl<T: std::marker::Send + 'static> DataSet<T> {
@@ -12,6 +14,7 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         DataSet {
             input_rx: Some(input_rx),
             thread: None,
+            has_sink: false,
         }
     }
 
@@ -35,6 +38,7 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
                         }
                     }
                     Message::Terminate => {
+                        output_tx.send(Message::Terminate).unwrap();
                         break;
                     }
                 }
@@ -62,6 +66,7 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
                         }
                     }
                     Message::Terminate => {
+                        output_tx.send(Message::Terminate).unwrap();
                         break;
                     }
                 }
@@ -69,6 +74,18 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         });
         self.thread = Some(thread);
         DataSet::new(output_rx)
+    }
+
+    pub fn add_sink<S: 'static>(&mut self, sink: S)
+    where
+        S: std::marker::Send + Sink<T = T>,
+    {
+        let input_rx = self.input_rx.take().unwrap();
+        let thread = thread::spawn(move || {
+            sink.start(input_rx).expect("Error starting sink");
+        });
+        self.thread = Some(thread);
+        self.has_sink = true; // use this later
     }
 }
 
