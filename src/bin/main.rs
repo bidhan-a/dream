@@ -17,14 +17,23 @@ fn main() {
         row
     });
 
-    // Process data.
+    // Process data (branches off from extra_field_1).
     let mut extra_field_2: DataSet<StringRecord> = extra_field_1.map(|mut row: StringRecord| {
-        row.push_field("field");
+        row.push_field("field1");
         row
     });
 
     // Add sink.
-    extra_field_2.add_sink(CSVSink::new().with_filename("data/out.csv"));
+    extra_field_2.add_sink(CSVSink::new().with_filename("data/out1.csv"));
+
+    // Process data (branches off from extra_field_2).
+    let mut extra_field_3: DataSet<StringRecord> = extra_field_1.map(|mut row: StringRecord| {
+        row.push_field("field2");
+        row
+    });
+
+    // Add sink.
+    extra_field_3.add_sink(CSVSink::new().with_filename("data/out2.csv"));
 
     // Run the pipeline.
     env.run();

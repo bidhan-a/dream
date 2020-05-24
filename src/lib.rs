@@ -5,14 +5,9 @@ pub mod sources;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-pub enum Message<T> {
+pub enum Message<T: Clone> {
     Data(T),
     Terminate,
-}
-
-pub trait Processor {
-    fn name(&self) -> String;
-    fn run(&self);
 }
 
 #[cfg(test)]

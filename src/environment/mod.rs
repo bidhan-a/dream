@@ -10,7 +10,7 @@ pub struct Environment {
     name: String,
     source_runners: Vec<Option<SourceRunner>>,
     source_threads: Vec<Option<thread::JoinHandle<()>>>,
-    start_signals: Arc<Mutex<Vec<Sender<()>>>>,
+    registry: Arc<Mutex<Vec<Sender<()>>>>,
 }
 
 struct SourceRunner(Box<dyn FnOnce() + std::marker::Send + 'static>);
@@ -21,7 +21,7 @@ impl Environment {
             name: name.to_owned(),
             source_runners: Vec::new(),
             source_threads: Vec::new(),
-            start_signals: Arc::new(Mutex::new(Vec::new())),
+            registry: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -29,6 +29,7 @@ impl Environment {
     where
         S: std::marker::Send + Source,
         <S as Source>::T: std::marker::Send,
+        <S as Source>::T: std::clone::Clone,
     {
         let (source_tx, source_rx) = mpsc::channel::<Message<S::T>>();
 
@@ -38,11 +39,19 @@ impl Environment {
 
         self.source_runners.push(Some(x));
 
-        DataSet::new(source_rx, Arc::clone(&self.start_signals))
+        DataSet::new(source_rx, Arc::clone(&self.registry))
     }
 
     pub fn run(&mut self) {
         println!("Starting {}.", self.name);
+
+        // Signal the DataSets to get ready.
+        let registry = self.registry.lock().unwrap();
+        for tx in registry.iter() {
+            tx.send(()).unwrap();
+        }
+
+        // Start sources.
         for source_runner in &mut self.source_runners {
             let runner = source_runner.take();
             let thread = thread::spawn(move || {
