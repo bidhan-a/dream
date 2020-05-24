@@ -10,5 +10,10 @@ pub enum Message<T> {
     Terminate,
 }
 
+pub trait Processor {
+    fn name(&self) -> String;
+    fn run(&self);
+}
+
 #[cfg(test)]
 mod test {}

@@ -1,13 +1,16 @@
 use crate::dataset::DataSet;
 use crate::sources::Source;
 use crate::Message;
-use std::sync::mpsc;
+use std::sync::mpsc::{self, Sender};
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 
 pub struct Environment {
     name: String,
     source_runners: Vec<Option<SourceRunner>>,
     source_threads: Vec<Option<thread::JoinHandle<()>>>,
+    start_signals: Arc<Mutex<Vec<Sender<()>>>>,
 }
 
 struct SourceRunner(Box<dyn FnOnce() + std::marker::Send + 'static>);
@@ -18,6 +21,7 @@ impl Environment {
             name: name.to_owned(),
             source_runners: Vec::new(),
             source_threads: Vec::new(),
+            start_signals: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -34,7 +38,7 @@ impl Environment {
 
         self.source_runners.push(Some(x));
 
-        DataSet::new(source_rx)
+        DataSet::new(source_rx, Arc::clone(&self.start_signals))
     }
 
     pub fn run(&mut self) {

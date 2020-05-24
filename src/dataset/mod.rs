@@ -1,19 +1,42 @@
 use crate::sinks::Sink;
 use crate::Message;
-use std::sync::mpsc::{self, Receiver};
+use crate::Processor;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 
-pub struct DataSet<T> {
+struct Channels<T> {
     input_rx: Option<Receiver<Message<T>>>,
-    thread: Option<thread::JoinHandle<()>>,
+    input_txs: Vec<Option<Sender<Message<T>>>>,
+}
+
+pub struct DataSet<T> {
+    channels: Arc<Mutex<Channels<T>>>,
+    input_rx: Option<Receiver<Message<T>>>,
+    threads: Vec<Option<thread::JoinHandle<()>>>,
+    input_txs: Vec<Option<Sender<Message<T>>>>,
+    registry: Arc<Mutex<Vec<Sender<()>>>>,
+    registered: bool,
     has_sink: bool,
 }
 
 impl<T: std::marker::Send + 'static> DataSet<T> {
-    pub fn new(input_rx: Receiver<Message<T>>) -> DataSet<T> {
-        DataSet {
+    pub fn new(
+        input_rx: Receiver<Message<T>>,
+        registry: Arc<Mutex<Vec<Sender<()>>>>,
+    ) -> DataSet<T> {
+        let channels = Arc::new(Mutex::new(Channels {
             input_rx: Some(input_rx),
-            thread: None,
+            input_txs: Vec::new(),
+        }));
+        DataSet {
+            channels: channels,
+            input_rx: Some(input_rx),
+            threads: Vec::new(),
+            input_txs: Vec::new(),
+            registry,
+            registered: false,
             has_sink: false,
         }
     }
@@ -24,57 +47,62 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         Self: std::marker::Sized,
         U: std::marker::Send,
     {
+        let (input_tx, input_rx) = mpsc::channel::<Message<T>>();
         let (output_tx, output_rx) = mpsc::channel::<Message<U>>();
-        let input_rx = self.input_rx.take().unwrap();
-        let thread = thread::spawn(move || {
-            loop {
-                // receive data from input channel.
-                let input = input_rx.recv().unwrap();
-                match input {
-                    Message::Data(data) => {
-                        let output = f(data);
-                        if output_tx.send(Message::Data(output)).is_err() {
-                            break;
-                        }
-                    }
-                    Message::Terminate => {
-                        output_tx.send(Message::Terminate).unwrap();
+        // let input_rx = self.input_rx.take().unwrap();
+
+        let thread = thread::spawn(move || loop {
+            let input = input_rx.recv().unwrap();
+            match input {
+                Message::Data(data) => {
+                    let output = f(data);
+                    if output_tx.send(Message::Data(output)).is_err() {
                         break;
                     }
                 }
+                Message::Terminate => {
+                    output_tx.send(Message::Terminate).unwrap();
+                    break;
+                }
             }
         });
-        self.thread = Some(thread);
-        DataSet::new(output_rx)
+        self.threads.push(Some(thread));
+        self.input_txs.push(Some(input_tx));
+
+        if !self.registered {
+            self.register();
+        }
+
+        DataSet::new(output_rx, Arc::clone(&self.registry))
     }
 
-    pub fn filter<F: 'static>(&mut self, f: F) -> DataSet<T>
-    where
-        F: std::marker::Send + Fn(&T) -> bool,
-        Self: std::marker::Sized,
-    {
-        let (output_tx, output_rx) = mpsc::channel::<Message<T>>();
-        let input_rx = self.input_rx.take().unwrap();
-        let thread = thread::spawn(move || {
-            loop {
-                // receive data from input channel.
-                let input = input_rx.recv().unwrap();
-                match input {
-                    Message::Data(data) => {
-                        if f(&data) && output_tx.send(Message::Data(data)).is_err() {
-                            break;
-                        }
-                    }
-                    Message::Terminate => {
-                        output_tx.send(Message::Terminate).unwrap();
-                        break;
-                    }
-                }
-            }
-        });
-        self.thread = Some(thread);
-        DataSet::new(output_rx)
-    }
+    // pub fn filter<F: 'static>(&mut self, f: F) -> DataSet<T>
+    // where
+    //     F: std::marker::Send + Fn(&T) -> bool,
+    //     Self: std::marker::Sized,
+    // {
+    //     let (output_tx, output_rx) = mpsc::channel::<Message<T>>();
+    //     let input_rx = self.input_rx.take().unwrap();
+    //     let thread = thread::spawn(move || {
+    //         loop {
+    //             // receive data from input channel.
+    //             let input = input_rx.recv().unwrap();
+    //             match input {
+    //                 Message::Data(data) => {
+    //                     if f(&data) && output_tx.send(Message::Data(data)).is_err() {
+    //                         break;
+    //                     }
+    //                 }
+    //                 Message::Terminate => {
+    //                     output_tx.send(Message::Terminate).unwrap();
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     });
+    //     self.thread = Some(thread);
+    //     DataSet::new(output_rx)
+    // }
 
     pub fn add_sink<S: 'static>(&mut self, sink: S)
     where
@@ -84,8 +112,20 @@ impl<T: std::marker::Send + 'static> DataSet<T> {
         let thread = thread::spawn(move || {
             sink.start(input_rx).expect("Error starting sink");
         });
-        self.thread = Some(thread);
+        self.threads.push(Some(thread));
         self.has_sink = true; // use this later
+    }
+
+    fn start(&self) {
+        println!("Start processor");
+    }
+
+    fn register(self) {
+        let (signal_tx, signal_rx) = mpsc::channel::<()>();
+        let thread = thread::spawn(move || {
+            signal_rx.recv().unwrap();
+            self.start();
+        });
     }
 }
 
@@ -96,9 +136,21 @@ impl<T> Drop for DataSet<T> {
         } else {
             println!("Closing processor.");
         }
-        if let Some(thread) = self.thread.take() {
-            thread.join().unwrap();
+        for thread in &mut self.threads {
+            if let Some(t) = thread.take() {
+                t.join().unwrap();
+            }
         }
+    }
+}
+
+impl<T: std::marker::Send + 'static> Processor for &mut DataSet<T> {
+    fn name(&self) -> String {
+        "DataSet".to_owned()
+    }
+
+    fn run(&self) {
+        self.start();
     }
 }
 

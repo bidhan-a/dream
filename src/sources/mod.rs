@@ -8,7 +8,4 @@ pub trait Source: Clone {
     type T;
     fn name(self) -> String;
     fn start(self, tx: Sender<Message<Self::T>>) -> Result<()>;
-    fn test(self) -> Result<()> {
-        Ok(())
-    }
 }
