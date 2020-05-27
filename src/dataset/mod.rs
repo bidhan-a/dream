@@ -97,6 +97,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         });
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
+        debug!("Pushing filter thread");
         self.threads.push(Some(thread));
 
         if !self.registered {
@@ -110,12 +111,19 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
     where
         S: std::marker::Send + Sink<T = T>,
     {
-        let input_rx = self.channels.lock().unwrap().input_rx.take().unwrap();
+        let (input_tx, input_rx) = mpsc::channel::<Message<T>>();
+        // let input_rx = self.channels.lock().unwrap().input_rx.take().unwrap();
         let thread = thread::spawn(move || {
             sink.start(input_rx).expect("Error starting sink");
         });
+
+        self.channels.lock().unwrap().input_txs.push(input_tx);
         debug!("Pushing sink thread");
         self.threads.push(Some(thread));
+
+        if !self.registered {
+            self.register();
+        }
     }
 
     fn register(&mut self) {

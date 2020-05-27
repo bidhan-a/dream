@@ -49,6 +49,9 @@ fn main() {
     // Add sink.
     extra_field_3.add_sink(CSVSink::new().with_filename("data/out2.csv"));
 
+    // Add another sink to extra_field_3.
+    extra_field_3.add_sink(CSVSink::new().with_filename("data/out3.csv"));
+
     // Run the pipeline.
     env.run();
 }
