@@ -40,7 +40,7 @@ impl Environment {
 
         self.source_runners.push(Some(x));
 
-        DataSet::new(source_rx, Arc::clone(&self.registry))
+        DataSet::new(source_rx, Arc::clone(&self.registry)).name("Source Processor")
     }
 
     pub fn run(&mut self) {

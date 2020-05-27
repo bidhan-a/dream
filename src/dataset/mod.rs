@@ -16,6 +16,7 @@ pub struct DataSet<T: std::clone::Clone> {
     threads: Vec<Option<thread::JoinHandle<()>>>,
     registry: Arc<Mutex<Vec<Sender<()>>>>,
     registered: bool,
+    name: String,
 }
 
 impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
@@ -32,7 +33,13 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
             threads: Vec::new(),
             registry,
             registered: false,
+            name: String::new(),
         }
+    }
+
+    pub fn name(mut self, name: &str) -> Self {
+        self.name = name.to_owned();
+        self
     }
 
     pub fn map<U: 'static, F: 'static>(&mut self, f: F) -> DataSet<U>
@@ -66,6 +73,10 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
         if !self.registered {
             self.register();
+        }
+
+        if self.name.is_empty() {
+            self.name = "Map Processor".to_string();
         }
 
         DataSet::new(output_rx, Arc::clone(&self.registry))
@@ -102,6 +113,10 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
         if !self.registered {
             self.register();
+        }
+
+        if self.name.is_empty() {
+            self.name = "Filter Processor".to_string();
         }
 
         DataSet::new(output_rx, Arc::clone(&self.registry))
@@ -165,6 +180,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
 impl<T: std::clone::Clone> Drop for DataSet<T> {
     fn drop(&mut self) {
+        debug!("Closing {}", self.name);
         for thread in &mut self.threads {
             debug!("Closing thread");
             if let Some(t) = thread.take() {
