@@ -1,5 +1,6 @@
 use crate::sinks::Sink;
 use crate::Message;
+use log::debug;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -15,7 +16,6 @@ pub struct DataSet<T: std::clone::Clone> {
     threads: Vec<Option<thread::JoinHandle<()>>>,
     registry: Arc<Mutex<Vec<Sender<()>>>>,
     registered: bool,
-    has_sink: bool,
 }
 
 impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
@@ -32,7 +32,6 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
             threads: Vec::new(),
             registry,
             registered: false,
-            has_sink: false,
         }
     }
 
@@ -62,7 +61,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         });
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
-        println!("Pushing map thread");
+        debug!("Pushing map thread");
         self.threads.push(Some(thread));
 
         if !self.registered {
@@ -115,9 +114,8 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         let thread = thread::spawn(move || {
             sink.start(input_rx).expect("Error starting sink");
         });
-        println!("Pushing sink thread");
+        debug!("Pushing sink thread");
         self.threads.push(Some(thread));
-        self.has_sink = true;
     }
 
     fn register(&mut self) {
@@ -126,7 +124,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         let thread = thread::spawn(move || {
             signal_rx.recv().unwrap();
 
-            println!("Received signal to setup and start processor.");
+            debug!("Received signal to setup and start processor.");
 
             // Do some plumbing.
             let input_rx = channels.lock().unwrap().input_rx.take().unwrap();
@@ -150,7 +148,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
                 }
             }
         });
-        println!("Pushing register thread");
+        debug!("Pushing register thread");
         self.threads.push(Some(thread));
         self.registry.lock().unwrap().push(signal_tx);
         self.registered = true;
@@ -159,13 +157,8 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
 impl<T: std::clone::Clone> Drop for DataSet<T> {
     fn drop(&mut self) {
-        if self.has_sink {
-            println!("Closing sink.");
-        } else {
-            println!("Closing processor.");
-        }
         for thread in &mut self.threads {
-            println!("Closing thread");
+            debug!("Closing thread");
             if let Some(t) = thread.take() {
                 t.join().unwrap();
             }

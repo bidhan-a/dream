@@ -1,3 +1,4 @@
+use chrono::Local;
 use csv::StringRecord;
 use dream::dataset::DataSet;
 use dream::environment::Environment;
@@ -5,6 +6,19 @@ use dream::sinks::csv::CSVSink;
 use dream::sources::csv::CSVSource;
 
 fn main() {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}] {}",
+                Local::now().format("[%Y-%m-%d %H:%M:%S]"),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stderr())
+        .apply()
+        .unwrap();
     let mut env = Environment::new("My Pipeline");
 
     // Add Source.

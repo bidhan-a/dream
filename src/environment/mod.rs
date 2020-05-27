@@ -1,6 +1,7 @@
 use crate::dataset::DataSet;
 use crate::sources::Source;
 use crate::Message;
+use log::debug;
 use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -43,7 +44,7 @@ impl Environment {
     }
 
     pub fn run(&mut self) {
-        println!("Starting {}.", self.name);
+        debug!("Starting {}.", self.name);
 
         // Signal the DataSets to get ready.
         let registry = self.registry.lock().unwrap();
@@ -64,7 +65,7 @@ impl Environment {
 
 impl Drop for Environment {
     fn drop(&mut self) {
-        println!("Closing execution environment.");
+        debug!("Closing execution environment.");
         for thread in &mut self.source_threads {
             if let Some(thread) = thread.take() {
                 thread.join().unwrap();
