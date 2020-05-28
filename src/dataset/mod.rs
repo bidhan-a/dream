@@ -70,12 +70,12 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         self.channels.lock().unwrap().input_txs.push(input_tx);
         self.threads.push(Some(thread));
 
-        if !self.registered {
-            self.register();
-        }
-
         if self.name.is_empty() {
             self.name = "Map Processor".to_string();
+        }
+
+        if !self.registered {
+            self.register();
         }
 
         DataSet::new(output_rx, Arc::clone(&self.registry))
@@ -109,12 +109,12 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         self.channels.lock().unwrap().input_txs.push(input_tx);
         self.threads.push(Some(thread));
 
-        if !self.registered {
-            self.register();
-        }
-
         if self.name.is_empty() {
             self.name = "Filter Processor".to_string();
+        }
+
+        if !self.registered {
+            self.register();
         }
 
         DataSet::new(output_rx, Arc::clone(&self.registry))
@@ -132,6 +132,10 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
         self.threads.push(Some(thread));
+
+        if self.name.is_empty() {
+            self.name = "Sink Processor".to_string();
+        }
 
         if !self.registered {
             self.register();
