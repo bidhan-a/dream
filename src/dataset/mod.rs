@@ -68,7 +68,6 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         });
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
-        debug!("Pushing map thread");
         self.threads.push(Some(thread));
 
         if !self.registered {
@@ -108,7 +107,6 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         });
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
-        debug!("Pushing filter thread");
         self.threads.push(Some(thread));
 
         if !self.registered {
@@ -133,7 +131,6 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         });
 
         self.channels.lock().unwrap().input_txs.push(input_tx);
-        debug!("Pushing sink thread");
         self.threads.push(Some(thread));
 
         if !self.registered {
@@ -144,10 +141,11 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
     fn register(&mut self) {
         let (signal_tx, signal_rx) = mpsc::channel::<()>();
         let channels = Arc::clone(&self.channels);
+        let name = self.name.clone();
         let thread = thread::spawn(move || {
             signal_rx.recv().unwrap();
 
-            debug!("Received signal to setup and start processor.");
+            debug!("Received signal to setup and start [{}].", name);
 
             // Do some plumbing.
             let input_rx = channels.lock().unwrap().input_rx.take().unwrap();
@@ -171,7 +169,6 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
                 }
             }
         });
-        debug!("Pushing register thread");
         self.threads.push(Some(thread));
         self.registry.lock().unwrap().push(signal_tx);
         self.registered = true;
@@ -182,7 +179,6 @@ impl<T: std::clone::Clone> Drop for DataSet<T> {
     fn drop(&mut self) {
         debug!("Closing {}", self.name);
         for thread in &mut self.threads {
-            debug!("Closing thread");
             if let Some(t) = thread.take() {
                 t.join().unwrap();
             }

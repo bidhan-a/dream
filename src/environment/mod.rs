@@ -6,6 +6,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use std::time;
 
 pub struct Environment {
     name: String,
@@ -47,9 +48,13 @@ impl Environment {
         debug!("Starting {}.", self.name);
 
         // Signal the DataSets to get ready.
-        let registry = self.registry.lock().unwrap();
+        let mut registry = self.registry.lock().unwrap();
+        // Start in reverse order to ensure that downstream receivers
+        // have been set up properly.
+        registry.reverse();
         for tx in registry.iter() {
             tx.send(()).unwrap();
+            thread::sleep(time::Duration::from_millis(10));
         }
 
         // Start sources.
