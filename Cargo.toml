@@ -12,3 +12,4 @@ crossbeam-utils = "0.7.2"
 log = "0.4.8"
 fern = "0.6.0"
 chrono = "0.4.11"
+uuid = { version = "0.8", features = ["v4"] }
