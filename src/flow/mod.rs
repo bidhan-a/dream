@@ -1,25 +1,31 @@
-use daggy::Dag;
+use std::sync::mpsc::{self, Sender};
 
 pub struct Processor {
     id: String,
     name: String,
+    start_signal_tx: Option<Sender<()>>,
 }
 
 impl Processor {
     pub fn new(id: String, name: String) -> Self {
-        Processor { id, name }
+        Processor {
+            id,
+            name,
+            start_signal_tx: None,
+        }
     }
 }
 
 pub struct Flow {
     processors: Vec<Processor>,
     edges: Vec<(String, String)>,
-    dag: Dag<Processor, ()>,
 }
 
 impl Flow {
-    pub fn add(mut self, processor: Processor) {
-        self.dag.add_node(processor);
+    pub fn add(mut self, processor: Processor, parent_processor_id: String) {
+        let processor_id = processor.id.clone();
+        self.processors.push(processor);
+        self.edges.push((parent_processor_id, processor_id));
     }
 }
 
