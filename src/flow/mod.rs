@@ -22,10 +22,10 @@ pub struct Flow {
 }
 
 impl Flow {
-    pub fn add(mut self, processor: Processor, parent_processor_id: String) {
+    pub fn add(mut self, processor: Processor, incoming_processor_id: String) {
         let processor_id = processor.id.clone();
         self.processors.push(processor);
-        self.edges.push((parent_processor_id, processor_id));
+        self.edges.push((incoming_processor_id, processor_id));
     }
 }
 

@@ -10,8 +10,8 @@ pub struct CSVSource {
 
 impl Source for CSVSource {
     type T = StringRecord;
-    fn name(self) -> String {
-        "Stdin Source".to_owned()
+    fn name(&self) -> String {
+        "CSV Source".to_owned()
     }
 
     fn start(self, tx: Sender<Message<Self::T>>) -> Result<()> {

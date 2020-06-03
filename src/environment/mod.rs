@@ -35,6 +35,7 @@ impl Environment {
         <S as Source>::T: std::clone::Clone,
     {
         let (source_tx, source_rx) = mpsc::channel::<Message<S::T>>();
+        let name = source.name();
 
         let x = SourceRunner(Box::new(move || {
             source.start(source_tx).expect("Error starting source");
@@ -42,7 +43,8 @@ impl Environment {
 
         self.source_runners.push(Some(x));
 
-        DataSet::new(source_rx, Arc::clone(&self.registry)).name("Source Processor")
+        DataSet::new(source_rx, Arc::clone(&self.registry))
+            .name(format!("{} Processor", name).as_str())
     }
 
     pub fn run(&mut self) {
