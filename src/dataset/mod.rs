@@ -178,6 +178,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
                         for input_tx in input_txs {
                             input_tx.send(Message::Terminate).unwrap();
                         }
+                        // Send records_in = 0 to signal termination for stats.
                         break;
                     }
                 }

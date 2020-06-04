@@ -27,6 +27,17 @@ impl Stats {
             bytes_out: 0,
         }
     }
+
+    pub fn update(&mut self, stats: Stats) -> bool {
+        if self.records_in == 0 {
+            return false;
+        }
+        self.records_in += stats.records_in;
+        self.records_out += stats.records_out;
+        self.bytes_in += stats.bytes_in;
+        self.bytes_out += stats.bytes_out;
+        true
+    }
 }
 
 #[cfg(test)]
