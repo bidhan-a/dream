@@ -14,8 +14,8 @@ pub enum Message<T: Clone> {
 pub struct Stats {
     records_in: u8,
     records_out: u8,
-    bytes_in: u8,
-    bytes_out: u8,
+    bytes_in: usize,
+    bytes_out: usize,
 }
 
 impl Stats {
@@ -37,6 +37,22 @@ impl Stats {
         self.bytes_in += stats.bytes_in;
         self.bytes_out += stats.bytes_out;
         true
+    }
+
+    pub fn get_records_in(&self) -> u8 {
+        self.records_in
+    }
+
+    pub fn get_records_out(&self) -> u8 {
+        self.records_in
+    }
+
+    pub fn get_bytes_in(&self) -> usize {
+        self.bytes_in
+    }
+
+    pub fn get_bytes_out(&self) -> usize {
+        self.bytes_out
     }
 }
 

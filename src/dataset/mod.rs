@@ -1,6 +1,5 @@
 use crate::sinks::Sink;
 use crate::Message;
-use crate::Stats;
 use log::debug;
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};

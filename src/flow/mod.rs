@@ -1,5 +1,6 @@
 use crate::Stats;
-use std::sync::mpsc::{self, Receiver, Sender};
+use log::debug;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -45,6 +46,24 @@ impl Processor {
     }
 }
 
+impl Drop for Processor {
+    fn drop(&mut self) {
+        let stats = self.stats.lock().unwrap();
+        debug!("Closing Processor [{}]", self.name);
+        debug!(
+            "Records In: {}, Records Out: {}, Bytes In: {}, Bytes Out: {}",
+            stats.get_records_in(),
+            stats.get_records_out(),
+            stats.get_bytes_in(),
+            stats.get_bytes_out()
+        );
+        debug!("-----------------------");
+        if let Some(t) = self.stats_thread.take() {
+            t.join().unwrap();
+        }
+    }
+}
+
 pub struct Flow {
     processors: Vec<Processor>,
     edges: Vec<(String, String)>,
@@ -69,19 +88,3 @@ impl Flow {
         self.processors.reverse();
     }
 }
-
-/*
-
-
-Processor {
-    id: String,
-    name: String,
-    start_signal: channel,
-    records_in: int,
-    records_out: int,
-    bytes_in: int,
-    bytes_out: int
-}
-
-
-*/
