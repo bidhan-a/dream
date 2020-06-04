@@ -1,8 +1,10 @@
+use crate::Stats;
 use std::sync::mpsc::{self, Sender};
 
 pub struct Processor {
     id: String,
     name: String,
+    stats: Stats,
     start_signal_tx: Option<Sender<()>>,
 }
 
@@ -11,6 +13,7 @@ impl Processor {
         Processor {
             id,
             name,
+            stats: Stats::new(),
             start_signal_tx: None,
         }
     }

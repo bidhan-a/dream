@@ -1,6 +1,8 @@
 use crate::sinks::Sink;
 use crate::Message;
+use crate::Stats;
 use log::debug;
+use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -156,13 +158,21 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
             let input_txs = &channels.lock().unwrap().input_txs;
             loop {
                 let input = input_rx.recv().unwrap();
+
                 match input {
                     Message::Data(data) => {
+                        let mut records_out = 0;
+                        let bytes_in = mem::size_of_val(&data);
+                        let mut bytes_out: usize = 0;
+
                         for input_tx in input_txs {
                             if input_tx.send(Message::Data(data.clone())).is_err() {
                                 break;
                             }
+                            records_out += 1;
+                            bytes_out += bytes_in;
                         }
+                        // Send stats here.
                     }
                     Message::Terminate => {
                         for input_tx in input_txs {

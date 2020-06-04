@@ -11,5 +11,23 @@ pub enum Message<T: Clone> {
     Terminate,
 }
 
+pub struct Stats {
+    records_in: u8,
+    records_out: u8,
+    bytes_in: u8,
+    bytes_out: u8,
+}
+
+impl Stats {
+    pub fn new() -> Self {
+        Stats {
+            records_in: 0,
+            records_out: 0,
+            bytes_in: 0,
+            bytes_out: 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {}
