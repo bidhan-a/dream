@@ -11,25 +11,26 @@ pub enum Message<T: Clone> {
     Terminate,
 }
 
+#[derive(Debug)]
 pub struct Stats {
-    records_in: u8,
-    records_out: u8,
+    records_in: u64,
+    records_out: u64,
     bytes_in: usize,
     bytes_out: usize,
 }
 
 impl Stats {
-    pub fn new() -> Self {
+    pub fn new(records_in: u64, records_out: u64, bytes_in: usize, bytes_out: usize) -> Self {
         Stats {
-            records_in: 0,
-            records_out: 0,
-            bytes_in: 0,
-            bytes_out: 0,
+            records_in,
+            records_out,
+            bytes_in,
+            bytes_out,
         }
     }
 
     pub fn update(&mut self, stats: Stats) -> bool {
-        if self.records_in == 0 {
+        if stats.records_in == 0 {
             return false;
         }
         self.records_in += stats.records_in;
@@ -39,12 +40,12 @@ impl Stats {
         true
     }
 
-    pub fn get_records_in(&self) -> u8 {
+    pub fn get_records_in(&self) -> u64 {
         self.records_in
     }
 
-    pub fn get_records_out(&self) -> u8 {
-        self.records_in
+    pub fn get_records_out(&self) -> u64 {
+        self.records_out
     }
 
     pub fn get_bytes_in(&self) -> usize {

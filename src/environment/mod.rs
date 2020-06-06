@@ -3,17 +3,16 @@ use crate::flow::Flow;
 use crate::sources::Source;
 use crate::Message;
 use log::debug;
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-use std::time;
 
 pub struct Environment {
     name: String,
     source_runners: Vec<Option<SourceRunner>>,
     source_threads: Vec<Option<thread::JoinHandle<()>>>,
-    registry: Arc<Mutex<Vec<Sender<()>>>>,
+    flow: Arc<Mutex<Flow>>,
 }
 
 struct SourceRunner(Box<dyn FnOnce() + std::marker::Send + 'static>);
@@ -24,7 +23,7 @@ impl Environment {
             name: name.to_owned(),
             source_runners: Vec::new(),
             source_threads: Vec::new(),
-            registry: Arc::new(Mutex::new(Vec::new())),
+            flow: Arc::new(Mutex::new(Flow::new())),
         }
     }
 
@@ -43,22 +42,15 @@ impl Environment {
 
         self.source_runners.push(Some(x));
 
-        DataSet::new(source_rx, Arc::clone(&self.registry))
+        DataSet::new(source_rx, Arc::clone(&self.flow), "ROOT".to_owned())
             .name(format!("{} Processor", name).as_str())
     }
 
     pub fn run(&mut self) {
         debug!("Starting {}.", self.name);
 
-        // Signal the DataSets to get ready.
-        let mut registry = self.registry.lock().unwrap();
-        // Start in reverse order to ensure that downstream receivers
-        // have been set up properly.
-        registry.reverse();
-        for tx in registry.iter() {
-            tx.send(()).unwrap();
-            thread::sleep(time::Duration::from_millis(10));
-        }
+        // Start the flow.
+        self.flow.lock().unwrap().start();
 
         // Start sources.
         for source_runner in &mut self.source_runners {

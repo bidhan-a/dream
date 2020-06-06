@@ -16,13 +16,18 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn new(id: String, name: String) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        start_signal_tx: Sender<()>,
+        stats_rx: Receiver<Stats>,
+    ) -> Self {
         Processor {
             id,
             name,
-            stats: Arc::new(Mutex::new(Stats::new())),
-            start_signal_tx: None,
-            stats_rx: None,
+            stats: Arc::new(Mutex::new(Stats::new(0, 0, 0, 0))),
+            start_signal_tx: Some(start_signal_tx),
+            stats_rx: Some(stats_rx),
             stats_thread: None,
         }
     }
@@ -31,6 +36,8 @@ impl Processor {
         // Start the underlying Dataset.
         let start_signal_tx = self.start_signal_tx.take().unwrap();
         start_signal_tx.send(()).unwrap();
+
+        thread::sleep(time::Duration::from_millis(10));
 
         // Setup stats thread for this processor.
         let stats_rx = self.stats_rx.take().unwrap();
@@ -43,13 +50,17 @@ impl Processor {
             }
         });
         self.stats_thread = Some(thread);
+        debug!("Started Processor: {}", self.name);
     }
 }
 
 impl Drop for Processor {
     fn drop(&mut self) {
         let stats = self.stats.lock().unwrap();
-        debug!("Closing Processor [{}]", self.name);
+        debug!(
+            "Closing Processor with id {} and name [{}]",
+            self.id, self.name
+        );
         debug!(
             "Records In: {}, Records Out: {}, Bytes In: {}, Bytes Out: {}",
             stats.get_records_in(),
@@ -64,16 +75,23 @@ impl Drop for Processor {
     }
 }
 
+#[derive(Default)]
 pub struct Flow {
     processors: Vec<Processor>,
     edges: Vec<(String, String)>,
 }
 
 impl Flow {
-    pub fn add(&mut self, processor: Processor, incoming_processor_id: String) {
-        let processor_id = processor.id.clone();
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn add(&mut self, processor: Processor) {
         self.processors.push(processor);
-        self.edges.push((incoming_processor_id, processor_id));
+    }
+
+    pub fn add_edge(&mut self, edge: (String, String)) {
+        self.edges.push(edge);
     }
 
     pub fn start(&mut self) {
@@ -82,9 +100,6 @@ impl Flow {
         self.processors.reverse();
         for p in &mut self.processors {
             p.start();
-            thread::sleep(time::Duration::from_millis(10));
         }
-        // Go back to original order.
-        self.processors.reverse();
     }
 }

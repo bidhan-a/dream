@@ -1,11 +1,13 @@
+use crate::flow::{Flow, Processor};
 use crate::sinks::Sink;
 use crate::Message;
-use log::debug;
+use crate::Stats;
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use uuid::Uuid;
 
 struct Channels<T: std::clone::Clone> {
     input_rx: Option<Receiver<Message<T>>>,
@@ -15,26 +17,34 @@ struct Channels<T: std::clone::Clone> {
 pub struct DataSet<T: std::clone::Clone> {
     channels: Arc<Mutex<Channels<T>>>,
     threads: Vec<Option<thread::JoinHandle<()>>>,
-    registry: Arc<Mutex<Vec<Sender<()>>>>,
+    flow: Arc<Mutex<Flow>>,
     registered: bool,
     name: String,
+    id: String,
 }
 
 impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
     pub fn new(
         input_rx: Receiver<Message<T>>,
-        registry: Arc<Mutex<Vec<Sender<()>>>>,
+        flow: Arc<Mutex<Flow>>,
+        from_id: String,
     ) -> DataSet<T> {
         let channels = Arc::new(Mutex::new(Channels {
             input_rx: Some(input_rx),
             input_txs: Vec::new(),
         }));
+
+        let id = Uuid::new_v4().to_string();
+
+        flow.lock().unwrap().add_edge((from_id, id.clone()));
+
         DataSet {
             channels,
             threads: Vec::new(),
-            registry,
+            flow,
             registered: false,
             name: String::new(),
+            id,
         }
     }
 
@@ -79,7 +89,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
             self.register();
         }
 
-        DataSet::new(output_rx, Arc::clone(&self.registry))
+        DataSet::new(output_rx, Arc::clone(&self.flow), self.id.clone())
     }
 
     pub fn filter<F: 'static>(&mut self, f: F) -> DataSet<T>
@@ -118,7 +128,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
             self.register();
         }
 
-        DataSet::new(output_rx, Arc::clone(&self.registry))
+        DataSet::new(output_rx, Arc::clone(&self.flow), self.id.clone())
     }
 
     pub fn add_sink<S: 'static>(&mut self, sink: S)
@@ -145,12 +155,10 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
 
     fn register(&mut self) {
         let (signal_tx, signal_rx) = mpsc::channel::<()>();
+        let (stats_tx, stats_rx) = mpsc::channel::<Stats>();
         let channels = Arc::clone(&self.channels);
-        let name = self.name.clone();
         let thread = thread::spawn(move || {
             signal_rx.recv().unwrap();
-
-            debug!("Received signal to setup and start [{}].", name);
 
             // Do some plumbing.
             let input_rx = channels.lock().unwrap().input_rx.take().unwrap();
@@ -172,26 +180,35 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
                             bytes_out += bytes_in;
                         }
                         // Send stats here.
+                        if stats_tx
+                            .send(Stats::new(1, records_out, bytes_in, bytes_out))
+                            .is_err()
+                        {
+                            break;
+                        }
                     }
                     Message::Terminate => {
                         for input_tx in input_txs {
                             input_tx.send(Message::Terminate).unwrap();
                         }
                         // Send records_in = 0 to signal termination for stats.
+                        stats_tx.send(Stats::new(0, 0, 0, 0)).unwrap();
                         break;
                     }
                 }
             }
         });
         self.threads.push(Some(thread));
-        self.registry.lock().unwrap().push(signal_tx);
+
+        let processor = Processor::new(self.id.clone(), self.name.clone(), signal_tx, stats_rx);
+        self.flow.lock().unwrap().add(processor);
+
         self.registered = true;
     }
 }
 
 impl<T: std::clone::Clone> Drop for DataSet<T> {
     fn drop(&mut self) {
-        debug!("Closing {}", self.name);
         for thread in &mut self.threads {
             if let Some(t) = thread.take() {
                 t.join().unwrap();
@@ -199,5 +216,3 @@ impl<T: std::clone::Clone> Drop for DataSet<T> {
         }
     }
 }
-
-// TODO: Give option to set names to DataSet. Generate one if not set.
