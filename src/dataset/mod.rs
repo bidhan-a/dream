@@ -153,6 +153,29 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         }
     }
 
+    pub fn add_sink_v2<S: 'static>(&mut self, sink: S)
+    where
+        S: std::marker::Send + Sink<T = T>,
+    {
+        let (sink_input_tx, sink_input_rx) = mpsc::channel::<Message<T>>();
+        let (input_tx, input_rx) = mpsc::channel::<Message<T>>();
+        let thread = thread::spawn(move || {
+            sink.start(sink_input_rx).expect("Error starting sink");
+        });
+
+        self.channels.lock().unwrap().input_txs.push(input_tx);
+        self.channels.lock().unwrap().input_txs.push(sink_input_tx);
+        self.threads.push(Some(thread));
+
+        if !self.registered {
+            self.register();
+        }
+
+        let mut ds =
+            DataSet::new(input_rx, Arc::clone(&self.flow), self.id.clone()).name("Sink Processor");
+        ds.register();
+    }
+
     fn register(&mut self) {
         let (signal_tx, signal_rx) = mpsc::channel::<()>();
         let (stats_tx, stats_rx) = mpsc::channel::<Stats>();
