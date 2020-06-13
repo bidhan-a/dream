@@ -43,7 +43,7 @@ fn main() {
         .name("Extra Field 2");
 
     // Add sink.
-    extra_field_2.add_sink_v2(CSVSink::new().with_filename("data/out1.csv"));
+    extra_field_2.add_sink(CSVSink::new().with_filename("data/out1.csv"));
 
     // Process data (branches off from extra_field_2).
     let mut extra_field_3: DataSet<StringRecord> = extra_field_1
@@ -52,12 +52,10 @@ fn main() {
             row
         })
         .name("Extra Field 3");
-
     // Add sink.
-    extra_field_3.add_sink_v2(CSVSink::new().with_filename("data/out2.csv"));
-
+    extra_field_3.add_sink(CSVSink::new().with_filename("data/out2.csv"));
     // Add another sink to extra_field_3.
-    extra_field_3.add_sink_v2(CSVSink::new().with_filename("data/out3.csv"));
+    extra_field_3.add_sink(CSVSink::new().with_filename("data/out3.csv"));
 
     /*
      * Diagram

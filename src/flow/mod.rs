@@ -19,14 +19,14 @@ impl Processor {
     pub fn new(
         id: String,
         name: String,
-        start_signal_tx: Sender<()>,
+        start_signal_tx: Option<Sender<()>>,
         stats_rx: Receiver<Stats>,
     ) -> Self {
         Processor {
             id,
             name,
             stats: Arc::new(Mutex::new(Stats::new(0, 0, 0, 0))),
-            start_signal_tx: Some(start_signal_tx),
+            start_signal_tx,
             stats_rx: Some(stats_rx),
             stats_thread: None,
         }
@@ -34,8 +34,10 @@ impl Processor {
 
     pub fn start(&mut self) {
         // Start the underlying Dataset.
-        let start_signal_tx = self.start_signal_tx.take().unwrap();
-        start_signal_tx.send(()).unwrap();
+        if self.start_signal_tx.is_some() {
+            let start_signal_tx = self.start_signal_tx.take().unwrap();
+            start_signal_tx.send(()).unwrap();
+        }
 
         thread::sleep(time::Duration::from_millis(10));
 
@@ -95,6 +97,7 @@ impl Flow {
     }
 
     pub fn start(&mut self) {
+        // debug!("{:?}", self.edges);
         // Start in reverse order to ensure that downstream receivers
         // have been set up properly.
         self.processors.reverse();

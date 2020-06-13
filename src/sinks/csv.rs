@@ -10,8 +10,8 @@ pub struct CSVSink {
 
 impl Sink for CSVSink {
     type T = StringRecord;
-    fn name(self) -> String {
-        "Stdin Source".to_owned()
+    fn name(&self) -> String {
+        "CSV Sink".to_owned()
     }
 
     fn start(self, rx: Receiver<Message<Self::T>>) -> Result<()> {
