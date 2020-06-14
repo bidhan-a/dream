@@ -21,6 +21,8 @@ fn main() {
         .unwrap();
     let mut env = Environment::new("My Pipeline");
 
+    // Source CSV file: https://raw.githubusercontent.com/Teradata/kylo/master/samples/sample-data/csv/userdata1.csv
+
     // Add Source.
     let mut dataset: DataSet<StringRecord> = env
         .add_source(CSVSource::new().with_filename("data/in.csv"))
