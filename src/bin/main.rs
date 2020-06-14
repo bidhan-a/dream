@@ -41,11 +41,10 @@ fn main() {
             row
         })
         .name("Extra Field 2");
-
     // Add sink.
     extra_field_2.add_sink(CSVSink::new().with_filename("data/out1.csv"));
 
-    // Process data (branches off from extra_field_2).
+    // Process data (branches off from extra_field_1).
     let mut extra_field_3: DataSet<StringRecord> = extra_field_1
         .map(|mut row: StringRecord| {
             row.push_field("field2");
@@ -57,12 +56,20 @@ fn main() {
     // Add another sink to extra_field_3.
     extra_field_3.add_sink(CSVSink::new().with_filename("data/out3.csv"));
 
+    // Process data (branches off from extra_field_1).
+    let mut first_name_starts_with_b: DataSet<StringRecord> = extra_field_1
+        .filter(|row: &StringRecord| row[2].starts_with('B'))
+        .name("First Name Starts With B");
+    // Add sink.
+    first_name_starts_with_b.add_sink(CSVSink::new().with_filename("data/out4.csv"));
+
     /*
      * Diagram
      *
      * CSV Source -> Extra Field 1 -> Extra Field 2 -> Sink
      *                            |-> Extra Field 3 -> Sink
-     *                                             |-> Sink
+     *                            |                |-> Sink
+     *                            |-> First Name Starts With B -> Sink
      */
 
     // Run the pipeline.
