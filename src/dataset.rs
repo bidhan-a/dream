@@ -1,7 +1,8 @@
-use crate::flow::{Flow, Processor};
+use crate::flow::Flow;
+use crate::processor::Processor;
 use crate::sinks::Sink;
+use crate::stats::Stats;
 use crate::Message;
-use crate::Stats;
 use std::mem;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
