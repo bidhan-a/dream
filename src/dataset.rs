@@ -10,11 +10,15 @@ use std::sync::Mutex;
 use std::thread;
 use uuid::Uuid;
 
+// `Channels` holds the channel for receiving data from upstream DataSet
+// as well as channels for transmitting data to downstream DataSets.
 struct Channels<T: std::clone::Clone> {
     input_rx: Option<Receiver<Message<T>>>,
     input_txs: Vec<Sender<Message<T>>>,
 }
 
+/// DataSet represents a collection of elements which belong to the same type (T).
+/// DataSets can be transformed to other DataSets by applying transformations.
 pub struct DataSet<T: std::clone::Clone> {
     channels: Arc<Mutex<Channels<T>>>,
     threads: Vec<Option<thread::JoinHandle<()>>>,
@@ -25,6 +29,7 @@ pub struct DataSet<T: std::clone::Clone> {
 }
 
 impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
+    /// Creates and returns a new DataSet.
     pub fn new(
         input_rx: Receiver<Message<T>>,
         flow: Arc<Mutex<Flow>>,
@@ -49,11 +54,13 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         }
     }
 
+    /// Sets the name for the transformation applied to this DataSet.
     pub fn name(mut self, name: &str) -> Self {
         self.name = name.to_owned();
         self
     }
 
+    /// Applies a `map` transformation to this DataSet.
     pub fn map<U: 'static, F: 'static>(&mut self, f: F) -> DataSet<U>
     where
         F: std::marker::Sync + std::marker::Send + Fn(T) -> U,
@@ -93,6 +100,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         DataSet::new(output_rx, Arc::clone(&self.flow), self.id.clone())
     }
 
+    /// Applies a `filter` transformation to this DataSet.
     pub fn filter<F: 'static>(&mut self, f: F) -> DataSet<T>
     where
         F: std::marker::Send + Fn(&T) -> bool,
@@ -132,6 +140,7 @@ impl<T: std::clone::Clone + std::marker::Send + 'static> DataSet<T> {
         DataSet::new(output_rx, Arc::clone(&self.flow), self.id.clone())
     }
 
+    /// Adds a sink to this DataSet.
     pub fn add_sink<S: 'static>(&mut self, sink: S)
     where
         S: std::marker::Send + Sink<T = T>,

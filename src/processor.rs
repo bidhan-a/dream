@@ -6,6 +6,8 @@ use std::sync::Mutex;
 use std::thread;
 use std::time;
 
+/// Processor gives a high-level view of the underlying DataSet.
+/// It isn't tied to any specific type.
 pub struct Processor {
     id: String,
     name: String,
@@ -16,6 +18,7 @@ pub struct Processor {
 }
 
 impl Processor {
+    /// Creates and returns a new Processor.
     pub fn new(
         id: String,
         name: String,
@@ -32,6 +35,7 @@ impl Processor {
         }
     }
 
+    /// Starts the processor.
     pub fn start(&mut self) {
         // Start the underlying Dataset.
         if self.start_signal_tx.is_some() {

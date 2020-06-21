@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
+/// Environment sets up and executes the data processing pipeline.
 pub struct Environment {
     name: String,
     source_runners: Vec<Option<SourceRunner>>,
@@ -18,6 +19,7 @@ pub struct Environment {
 struct SourceRunner(Box<dyn FnOnce() + std::marker::Send + 'static>);
 
 impl Environment {
+    /// Creates and returns a new Environment.
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_owned(),
@@ -27,6 +29,7 @@ impl Environment {
         }
     }
 
+    /// Adds a data source to the environment.
     pub fn add_source<S: 'static>(&mut self, source: S) -> DataSet<S::T>
     where
         S: std::marker::Send + Source,
@@ -46,6 +49,7 @@ impl Environment {
             .name(format!("{} Processor", name).as_str())
     }
 
+    /// Signals the environment to run the data processing pipeline.
     pub fn run(&mut self) {
         debug!("Starting {}.", self.name);
 
