@@ -11,6 +11,7 @@ crossbeam-utils = "0.7.2"
 log = "0.4.8"
 chrono = "0.4.11"
 uuid = { version = "0.8", features = ["v4"] }
+avro-rs = "0.10.0"
 
 [dev-dependencies]
 fern = "0.6.0"
