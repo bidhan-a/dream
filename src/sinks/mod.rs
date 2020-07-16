@@ -2,6 +2,7 @@ use crate::{Message, Result};
 use std::sync::mpsc::Receiver;
 
 pub mod csv;
+pub mod print;
 
 /// An interface for defining a data sink.
 pub trait Sink: Clone {
