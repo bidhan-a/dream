@@ -1,6 +1,7 @@
 use crate::{Message, Result};
 use std::sync::mpsc::Receiver;
 
+pub mod avro;
 pub mod csv;
 pub mod print;
 
