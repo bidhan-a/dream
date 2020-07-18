@@ -6,6 +6,7 @@ use std::io::{self, Write};
 #[derive(Clone, Default)]
 pub struct CSVSink {
     filename: Option<String>,
+    headers: Option<StringRecord>,
 }
 
 impl Sink for CSVSink {
@@ -21,6 +22,10 @@ impl Sink for CSVSink {
             Box::new(io::stdout())
         };
         let mut wtr = Writer::from_writer(writer);
+
+        if let Some(h) = self.headers {
+            wtr.write_record(h.iter())?;
+        }
 
         loop {
             let input = rx.recv().unwrap();
@@ -47,6 +52,11 @@ impl CSVSink {
 
     pub fn with_filename(mut self, filename: &str) -> Self {
         self.filename = Some(filename.to_owned());
+        self
+    }
+
+    pub fn with_headers(mut self, headers: StringRecord) -> Self {
+        self.headers = Some(headers);
         self
     }
 }
