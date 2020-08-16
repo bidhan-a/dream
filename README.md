@@ -14,7 +14,3 @@ It is at a very early stage of development and should not be used to handle real
 4. Add tests.
 5. Add more TODOs.
 
----
-
-
-(Note: This is a personal research project for me at the moment, as I experiment with the ins and outs of rust as well as data processing in general. But I do intend to turn it into a fully fledged product in the future.)
